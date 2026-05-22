@@ -1,0 +1,1 @@
+drop sql querries here.
