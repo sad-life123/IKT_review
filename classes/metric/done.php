@@ -1,36 +1,43 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+
 namespace local_ikt_review\metric;
 
 defined('MOODLE_INTERNAL') || die();
 
 class done extends base_metric {
+    public function get_metric_key(): string {
+        return 'done';
+    }
+
     public function get_name(): string {
         return 'Done';
     }
 
-    public function calculate(): array {
-        global $DB;
-        $sql = $this->get_sql('done.sql');
-        $records = $DB->get_records_sql($sql);
-        
+    public function calculate(?int $runid = null): array {
+        $records = $this->get_snap_records($runid, 'courseid, answer_count, gr_count, student_count');
         $results = [];
-        foreach ($records as $rec) {
-            $total_ans = (int)$rec->total_ans;
-            $gr_count = (int)$rec->gr_count;
-            $student_count = (int)$rec->student_count;
-            
-            // Done = total_ans / (gr * s)
-            $denom = $gr_count * $student_count;
-            $done = $denom > 0 ? ($total_ans / $denom) : 0;
-            
-            $results[$rec->courseid] = [
-                'courseid' => $rec->courseid,
-                'total_ans' => $total_ans,
-                'gr_count' => $gr_count,
-                'student_count' => $student_count,
-                'done' => $done
+
+        foreach ($records as $record) {
+            $answercount = (int)$record->answer_count;
+            $grcount = (int)$record->gr_count;
+            $studentcount = (int)$record->student_count;
+            $denominator = $grcount * $studentcount;
+            $value = $denominator > 0 ? $answercount / $denominator : 0;
+
+            $results[$record->courseid] = [
+                'courseid' => $record->courseid,
+                'total_ans' => $answercount,
+                'gr_count' => $grcount,
+                'student_count' => $studentcount,
+                'done' => $value,
             ];
         }
+
         return $results;
+    }
+
+    protected function get_value_payload(array $data): array {
+        return $this->single_value((float)$data['done']);
     }
 }

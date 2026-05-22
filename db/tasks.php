@@ -7,10 +7,11 @@ $tasks = [
     [
         'classname' => 'local_ikt_review\task\do_everything',
         'blocking' => 0,
-        'minute' => '*/5',
-        'hour' => '*',
+        'minute' => '0',
+        'hour' => '3',
         'day' => '*',
         'month' => '*',
-        'dayofweek' => '*',
+        'dayofweek' => '0',
+        'disabled' => 1,
     ],
 ];

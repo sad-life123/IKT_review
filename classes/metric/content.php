@@ -1,48 +1,50 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+
 namespace local_ikt_review\metric;
 
 defined('MOODLE_INTERNAL') || die();
 
 class content extends base_metric {
-    // Константы для логики заглушек з.е.
-    const LECTURES_HOURS = 36;
-    const PZ_HOURS = 18;
-    const LR_HOURS = 18;
-    
-    const WEIGHT_T = 0.3;
-    const WEIGHT_GR = 0.7;
+    private const LECTURES_HOURS = 36;
+    private const PZ_HOURS = 18;
+    private const LR_HOURS = 18;
+
+    private const WEIGHT_T = 0.3;
+    private const WEIGHT_GR = 0.7;
+
+    public function get_metric_key(): string {
+        return 'content';
+    }
 
     public function get_name(): string {
         return 'Content';
     }
 
-    public function calculate(): array {
-        global $DB;
-        $sql = $this->get_sql('content.sql');
-        $records = $DB->get_records_sql($sql);
-        
+    public function calculate(?int $runid = null): array {
+        $records = $this->get_snap_records($runid, 'courseid, fullname, t_count, gr_count');
         $results = [];
         $lectures = self::LECTURES_HOURS / 2;
-        $pz = self::PZ_HOURS / 2;
-        $lr = self::LR_HOURS / 4;
-        
-        foreach ($records as $rec) {
-            $t = (int)$rec->t_count;
-            $gr = (int)$rec->gr_count;
-            
-            // Content = 0,3*t/lectures + 0,7*gr/(PZ+LR)
-            $denom = $pz + $lr;
-            $content_val = ($lectures > 0 ? (self::WEIGHT_T * $t / $lectures) : 0) + 
-                           ($denom > 0 ? (self::WEIGHT_GR * $gr / $denom) : 0);
-            
-            $results[$rec->courseid] = [
-                'courseid' => $rec->courseid,
-                'fullname' => $rec->fullname ?? 'Unknown',
+        $practice = self::PZ_HOURS / 2 + self::LR_HOURS / 4;
+
+        foreach ($records as $record) {
+            $t = (int)$record->t_count;
+            $gr = (int)$record->gr_count;
+            $value = self::WEIGHT_T * $t / $lectures + self::WEIGHT_GR * $gr / $practice;
+
+            $results[$record->courseid] = [
+                'courseid' => $record->courseid,
+                'fullname' => $record->fullname,
                 't' => $t,
                 'gr' => $gr,
-                'content' => $content_val
+                'content' => $value,
             ];
         }
+
         return $results;
+    }
+
+    protected function get_value_payload(array $data): array {
+        return $this->single_value((float)$data['content']);
     }
 }

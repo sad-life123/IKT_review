@@ -1,33 +1,40 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+
 namespace local_ikt_review\metric;
 
 defined('MOODLE_INTERNAL') || die();
 
 class bbb extends base_metric {
+    public function get_metric_key(): string {
+        return 'bbb';
+    }
+
     public function get_name(): string {
         return 'BBB';
     }
 
-    public function calculate(): array {
-        global $DB;
-        $sql = $this->get_sql('bbb.sql');
-        $records = $DB->get_records_sql($sql);
-        
+    public function calculate(?int $runid = null): array {
+        $records = $this->get_snap_records($runid, 'courseid, bbb_count');
         $results = [];
-        foreach ($records as $rec) {
-            // Заглушка для "живого" элемента:
-            // 0/1 живой элемент если за семестр к элементу обращалось минимум 5 человек и 1 преподаватель в течение 1 часа.
-            // Для демо-версии мы используем наличие элемента как базовую заглушку, 
-            // так как анализ логов по времени - слишком тяжеловесная операция для простого демо.
-            $has_bbb = (int)$rec->has_bbb;
-            $is_live = $has_bbb > 0 ? 1 : 0;
-            
-            $results[$rec->courseid] = [
-                'courseid' => $rec->courseid,
-                'has_bbb' => $has_bbb,
-                'is_live' => $is_live
+
+        foreach ($records as $record) {
+            $hasbbb = (int)$record->bbb_count > 0 ? 1 : 0;
+
+            $results[$record->courseid] = [
+                'courseid' => $record->courseid,
+                'has_bbb' => $hasbbb,
+                'is_live' => $hasbbb,
             ];
         }
+
         return $results;
+    }
+
+    protected function get_value_payload(array $data): array {
+        return [
+            'has_bbb' => (int)$data['has_bbb'],
+            'is_live' => (int)$data['is_live'],
+        ];
     }
 }

@@ -5,9 +5,9 @@ namespace local_ikt_review\task;
 
 defined('MOODLE_INTERNAL') || die();
 
-class do_everything extends \core\task\scheduled_task {
+class review_task extends \core\task\scheduled_task {
     public function get_name(): string {
-        return get_string('task_do_everything', 'local_ikt_review');
+        return 'IKT review complex task';
     }
 
     public function execute(): void {
