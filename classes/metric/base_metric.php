@@ -23,7 +23,9 @@ abstract class base_metric {
         global $DB;
 
         $results = $this->calculate($runid);
-        $count = 0;
+        $records = [];
+        $now = time();
+
         $DB->delete_records('local_ikt_review_metric', [
             'runid' => $runid,
             'metric' => $this->get_metric_key(),
@@ -31,18 +33,20 @@ abstract class base_metric {
 
         foreach ($results as $courseid => $data) {
             $payload = $this->get_value_payload($data);
-            $DB->insert_record('local_ikt_review_metric', (object)[
+            $records[] = (object)[
                 'runid' => $runid,
                 'courseid' => $courseid,
                 'metric' => $this->get_metric_key(),
                 'value' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'timecreated' => time(),
-            ]);
-
-            $count++;
+                'timecreated' => $now,
+            ];
         }
 
-        return $count;
+        if ($records) {
+            $DB->insert_records('local_ikt_review_metric', $records);
+        }
+
+        return count($records);
     }
 
     protected function resolve_runid(?int $runid): int {

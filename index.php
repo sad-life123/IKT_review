@@ -15,7 +15,8 @@ $PAGE->set_url(new moodle_url('/local/ikt_review/index.php'));
 $manager = new \local_ikt_review\manager();
 $message = null;
 
-if (optional_param('action', '', PARAM_ALPHA) === 'run') {
+$action = optional_param('action', '', PARAM_ALPHA);
+if ($action === 'run') {
     require_sesskey();
 
     $periodfrom = local_ikt_review_parse_date(optional_param('periodfrom', '', PARAM_RAW), time() - 180 * DAYSECS);
@@ -26,7 +27,7 @@ if (optional_param('action', '', PARAM_ALPHA) === 'run') {
         $runid = $manager->run($periodfrom, $periodto);
         $message = $OUTPUT->notification(get_string('runfinished', 'local_ikt_review', $runid), 'success');
     } catch (Throwable $e) {
-        $message = $OUTPUT->notification($e->getMessage(), 'error');
+        $message = $OUTPUT->notification(local_ikt_review_describe_exception($e), 'error');
     }
 }
 
@@ -43,8 +44,6 @@ echo local_ikt_review_render_runs($manager->get_recent_runs());
 $latestrun = $manager->get_latest_run();
 if ($latestrun) {
     echo local_ikt_review_render_summary($latestrun);
-    echo local_ikt_review_render_logs($latestrun->id);
-    echo local_ikt_review_render_snap($latestrun->id);
 }
 
 echo $OUTPUT->footer();
@@ -67,6 +66,16 @@ function local_ikt_review_parse_date(string $date, int $default): int {
     return make_timestamp($year, $month, $day);
 }
 
+function local_ikt_review_describe_exception(Throwable $exception): string {
+    $message = $exception->getMessage();
+
+    if (property_exists($exception, 'debuginfo') && !empty($exception->debuginfo)) {
+        $message .= ' | Debug: ' . $exception->debuginfo;
+    }
+
+    return $message;
+}
+
 function local_ikt_review_render_run_form(): string {
     global $OUTPUT;
 
@@ -79,7 +88,6 @@ function local_ikt_review_render_run_form(): string {
         'action' => new moodle_url('/local/ikt_review/index.php'),
     ]);
     $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-    $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'run']);
     $html .= html_writer::label(get_string('periodfrom', 'local_ikt_review'), 'ikt-review-periodfrom');
     $html .= html_writer::empty_tag('input', [
         'type' => 'date',
@@ -96,6 +104,8 @@ function local_ikt_review_render_run_form(): string {
     ]);
     $html .= html_writer::tag('button', get_string('runreview', 'local_ikt_review'), [
         'type' => 'submit',
+        'name' => 'action',
+        'value' => 'run',
         'class' => 'btn btn-primary ml-3',
     ]);
     $html .= html_writer::end_tag('form');
@@ -152,77 +162,4 @@ function local_ikt_review_render_summary(stdClass $run): string {
     }
 
     return html_writer::tag('h3', get_string('summary', 'local_ikt_review')) . html_writer::table($table);
-}
-
-function local_ikt_review_render_logs(int $runid): string {
-    global $DB;
-
-    $logs = $DB->get_records('local_ikt_review_log', ['runid' => $runid], 'id ASC', '*', 0, 50);
-    if (!$logs) {
-        return '';
-    }
-
-    $table = new html_table();
-    $table->head = ['id', get_string('level', 'local_ikt_review'), get_string('step', 'local_ikt_review'),
-        get_string('durationms', 'local_ikt_review'), get_string('rowsprocessed', 'local_ikt_review'),
-        get_string('message', 'local_ikt_review')];
-
-    foreach ($logs as $log) {
-        $table->data[] = [
-            $log->id,
-            s($log->level),
-            s($log->step),
-            $log->durationms,
-            $log->rowsprocessed,
-            s($log->message),
-        ];
-    }
-
-    return html_writer::tag('h3', get_string('runlog', 'local_ikt_review')) . html_writer::table($table);
-}
-
-function local_ikt_review_render_snap(int $runid): string {
-    global $DB;
-
-    $records = $DB->get_records('local_ikt_review_snap', ['runid' => $runid], 'courseid ASC', '*', 0, 100);
-    if (!$records) {
-        return '';
-    }
-
-    $metrics = $DB->get_records('local_ikt_review_metric', ['runid' => $runid], 'courseid ASC, metric ASC');
-    $metricmap = [];
-    foreach ($metrics as $metric) {
-        $metricmap[$metric->courseid][$metric->metric] = $metric->value;
-    }
-
-    $table = new html_table();
-    $table->head = [
-        'courseid',
-        'fullname',
-        'modules',
-        'gr',
-        't',
-        'students',
-        'views',
-        'answers',
-        'avg_grade',
-        'metrics',
-    ];
-
-    foreach ($records as $record) {
-        $table->data[] = [
-            $record->courseid,
-            s($record->fullname),
-            $record->modules,
-            $record->gr_count,
-            $record->t_count,
-            $record->student_count,
-            $record->view_count,
-            $record->answer_count,
-            $record->avg_grade,
-            s(json_encode($metricmap[$record->courseid] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
-        ];
-    }
-
-    return html_writer::tag('h3', get_string('debugsnapshot', 'local_ikt_review')) . html_writer::table($table);
 }

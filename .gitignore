@@ -1,3 +1,4 @@
 .DS_Store
 amd/src/
 *.md
+/debug

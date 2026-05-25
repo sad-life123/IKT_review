@@ -53,13 +53,11 @@ class manager {
                 global $DB;
                 $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_log_filtered');
                 $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_log_agg');
-                $sql = $this->get_sql('collect/log_filter.sql');
+                $sql = 'CREATE TEMP TABLE tmp_ikt_review_log_filtered AS ' . $this->get_sql('collect/log_filter.sql');
                 $DB->execute($sql, $this->filter_params($sql, [
                     'periodfrom' => $periodfrom,
                     'periodto' => $periodto,
                 ]));
-                $DB->execute('CREATE INDEX tmp_ikt_review_log_filtered_course_idx ON tmp_ikt_review_log_filtered(courseid)');
-                $DB->execute('ANALYZE tmp_ikt_review_log_filtered');
                 return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_log_filtered');
             });
 
