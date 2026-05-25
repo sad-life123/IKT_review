@@ -6,10 +6,6 @@ namespace local_ikt_review\metric;
 defined('MOODLE_INTERNAL') || die();
 
 class content extends base_metric {
-    private const LECTURES_HOURS = 36;
-    private const PZ_HOURS = 18;
-    private const LR_HOURS = 18;
-
     private const WEIGHT_T = 0.3;
     private const WEIGHT_GR = 0.7;
 
@@ -22,14 +18,16 @@ class content extends base_metric {
     }
 
     public function calculate(?int $runid = null): array {
-        $records = $this->get_snap_records($runid, 'courseid, fullname, t_count, gr_count');
+        $records = $this->get_snap_records($runid, 'courseid, fullname, idnumber, t_count, gr_count');
         $results = [];
-        $lectures = self::LECTURES_HOURS / 2;
-        $practice = self::PZ_HOURS / 2 + self::LR_HOURS / 4;
+        $workloadprovider = new \local_ikt_review\api\api_provider();
 
         foreach ($records as $record) {
             $t = (int)$record->t_count;
             $gr = (int)$record->gr_count;
+            $workload = $workloadprovider->get_workload($record);
+            $lectures = max((float)$workload['lectures'] / 2, 1);
+            $practice = max((float)$workload['pz'] / 2 + (float)$workload['lr'] / 4, 1);
             $value = self::WEIGHT_T * $t / $lectures + self::WEIGHT_GR * $gr / $practice;
 
             $results[$record->courseid] = [
@@ -37,7 +35,9 @@ class content extends base_metric {
                 'fullname' => $record->fullname,
                 't' => $t,
                 'gr' => $gr,
+                'elements_count' => $t + $gr,
                 'content' => $value,
+                'workload_source' => $workload['source'],
             ];
         }
 
@@ -45,6 +45,9 @@ class content extends base_metric {
     }
 
     protected function get_value_payload(array $data): array {
-        return $this->single_value((float)$data['content']);
+        return [
+            'value' => (float)$data['content'],
+            'workload_source' => (string)$data['workload_source'],
+        ];
     }
 }

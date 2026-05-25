@@ -4,7 +4,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_ikt_review';
-$plugin->version = 2028052501;
+$plugin->version = 2028052502;
 $plugin->requires = 2022112800;
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.2.2';
+$plugin->release = '0.3.0';

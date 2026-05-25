@@ -15,16 +15,18 @@ class bbb extends base_metric {
     }
 
     public function calculate(?int $runid = null): array {
-        $records = $this->get_snap_records($runid, 'courseid, bbb_count');
+        $records = $this->get_snap_records($runid, 'courseid, bbb_count, live_bbb_count');
         $results = [];
 
         foreach ($records as $record) {
             $hasbbb = (int)$record->bbb_count > 0 ? 1 : 0;
+            $islive = (int)$record->live_bbb_count > 0 ? 1 : 0;
 
             $results[$record->courseid] = [
                 'courseid' => $record->courseid,
                 'has_bbb' => $hasbbb,
-                'is_live' => $hasbbb,
+                'live_bbb_count' => (int)$record->live_bbb_count,
+                'is_live' => $islive,
             ];
         }
 
@@ -35,6 +37,7 @@ class bbb extends base_metric {
         return [
             'has_bbb' => (int)$data['has_bbb'],
             'is_live' => (int)$data['is_live'],
+            'live_bbb_count' => (int)$data['live_bbb_count'],
         ];
     }
 }

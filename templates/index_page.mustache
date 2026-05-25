@@ -26,22 +26,26 @@
     <div class="card mb-4 border-left border-info shadow-sm">
         <div class="card-header bg-white font-weight-bold text-info border-0 pb-0">
             <h3>{{str_summary}}</h3>
+            <div class="text-muted small">{{str_latestrun}}: # {{id}}</div>
         </div>
         <div class="card-body">
             <table class="table table-sm table-borderless m-0 summary-table">
                 <tbody>
+                    {{#primary_indicators}}
                     <tr>
-                        <td class="font-weight-bold text-muted" style="width: 250px;">{{str_latestrun}}:</td>
-                        <td><span class="badge badge-secondary"># {{id}}</span></td>
+                        <td class="font-weight-bold text-muted" style="width: 520px;">{{label}}</td>
+                        <td class="font-weight-bold text-dark">{{value}}</td>
                     </tr>
+                    {{/primary_indicators}}
+                    <tr class="table-info">
+                        <td colspan="2" class="font-weight-bold">{{filled_note}}</td>
+                    </tr>
+                    {{#filled_indicators}}
                     <tr>
-                        <td class="font-weight-bold text-muted">{{str_courses}}:</td>
-                        <td class="font-weight-bold text-dark">{{courses}}</td>
+                        <td class="font-weight-bold text-muted">{{label}}</td>
+                        <td class="font-weight-bold text-dark">{{value}}</td>
                     </tr>
-                    <tr>
-                        <td class="font-weight-bold text-muted">{{str_metrics}}:</td>
-                        <td class="font-weight-bold text-dark">{{metrics}}</td>
-                    </tr>
+                    {{/filled_indicators}}
                     {{#error}}
                     <tr class="table-danger">
                         <td class="font-weight-bold text-danger">{{str_error}}:</td>
@@ -76,7 +80,7 @@
                         <td>{{periodfrom}}</td>
                         <td>{{periodto}}</td>
                         <td>
-                            <span class="badge {{#status}}badge-success{{/status}}">{{status}}</span>
+                            <span class="badge {{statusclass}}">{{status}}</span>
                         </td>
                         <td><i class="fa fa-clock-o text-muted mr-1"></i> {{duration}}</td>
                         <td><code class="text-muted">{{calculationversion}}</code></td>

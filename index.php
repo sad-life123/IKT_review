@@ -58,6 +58,7 @@ if (!empty($recent_runs)) {
             'periodfrom' => userdate($run->periodfrom),
             'periodto' => userdate($run->periodto),
             'status' => s($run->status),
+            'statusclass' => local_ikt_review_status_class((string)$run->status),
             'duration' => format_time($duration),
             'calculationversion' => s($run->calculationversion),
         ];
@@ -67,14 +68,51 @@ if (!empty($recent_runs)) {
 $summary_data = null;
 $latestrun = $manager->get_latest_run();
 if ($latestrun) {
-    global $DB;
-    $snapcount = $DB->count_records('local_ikt_review_snap', ['runid' => $latestrun->id]);
-    $metriccount = $DB->count_records('local_ikt_review_metric', ['runid' => $latestrun->id]);
+    $reportsummary = $manager->get_summary($manager->get_all_metrics((int)$latestrun->id));
 
     $summary_data = [
         'id' => $latestrun->id,
-        'courses' => $snapcount,
-        'metrics' => $metriccount,
+        'primary_indicators' => [
+            [
+                'label' => get_string('report_filled_count', 'local_ikt_review'),
+                'value' => local_ikt_review_format_int($reportsummary['filled_count'] ?? 0),
+            ],
+            [
+                'label' => get_string('report_filled_ratio', 'local_ikt_review'),
+                'value' => local_ikt_review_format_percent($reportsummary['filled_ratio'] ?? 0),
+            ],
+            [
+                'label' => get_string('report_live_bbb_count', 'local_ikt_review'),
+                'value' => local_ikt_review_format_int($reportsummary['live_bbb_count'] ?? 0),
+            ],
+        ],
+        'filled_note' => get_string('report_filled_only_note', 'local_ikt_review'),
+        'filled_indicators' => [
+            [
+                'label' => get_string('report_avg_elements', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_elements'] ?? 0, 2),
+            ],
+            [
+                'label' => get_string('report_avg_content', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_content'] ?? 0, 4),
+            ],
+            [
+                'label' => get_string('report_avg_at', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_at'] ?? 0, 4),
+            ],
+            [
+                'label' => get_string('report_avg_unique_at', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_unique_at'] ?? 0, 4),
+            ],
+            [
+                'label' => get_string('report_avg_done', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_done'] ?? 0, 4),
+            ],
+            [
+                'label' => get_string('report_avg_check', 'local_ikt_review'),
+                'value' => local_ikt_review_format_number($reportsummary['avg_check'] ?? 0, 4),
+            ],
+        ],
         'error' => !empty($latestrun->error) ? s($latestrun->error) : null,
     ];
 }
@@ -93,10 +131,8 @@ $template_context = [
     'runs' => $runs_list,
     'summary' => $summary_data,
     'str_runs' => get_string('runs', 'local_ikt_review'),
-    'str_summary' => get_string('summary', 'local_ikt_review'),
+    'str_summary' => get_string('reporttitle', 'local_ikt_review'),
     'str_latestrun' => get_string('latestrun', 'local_ikt_review'),
-    'str_courses' => get_string('courses', 'local_ikt_review'),
-    'str_metrics' => get_string('metrics', 'local_ikt_review'),
     'str_status' => get_string('status'),
     'str_duration' => get_string('duration', 'local_ikt_review'),
     'str_version' => get_string('calculationversion', 'local_ikt_review'),
@@ -122,4 +158,28 @@ function local_ikt_review_describe_exception(Throwable $exception): string {
         $message .= ' | Debug: ' . $exception->debuginfo;
     }
     return $message;
+}
+
+function local_ikt_review_format_int($value): string {
+    return (string)(int)$value;
+}
+
+function local_ikt_review_format_number($value, int $decimals): string {
+    return format_float((float)$value, $decimals);
+}
+
+function local_ikt_review_format_percent($ratio): string {
+    return format_float((float)$ratio * 100, 2) . '%';
+}
+
+function local_ikt_review_status_class(string $status): string {
+    if ($status === 'finished') {
+        return 'badge-success';
+    }
+
+    if ($status === 'failed') {
+        return 'badge-danger';
+    }
+
+    return 'badge-secondary';
 }

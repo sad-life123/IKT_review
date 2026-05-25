@@ -17,6 +17,7 @@ class manager {
             new metric\attendance(),
             new metric\bbb(),
             new metric\done(),
+            new metric\check(),
             new metric\performance(),
         ];
     }
@@ -78,7 +79,7 @@ class manager {
                 'bbbmoduleid' => $moduleids['bigbluebuttonbn'] ?? 0,
             ];
 
-            foreach (['course_info', 'course_items', 'students', 'views', 'answers', 'grades'] as $step) {
+            foreach (['course_info', 'course_items', 'bbb_live', 'students', 'views', 'answers', 'grades'] as $step) {
                 $this->execute_step($runid, $step, function() use ($step, $baseparams) {
                     global $DB;
                     $before = $DB->count_records('local_ikt_review_snap', ['runid' => $baseparams['runid']]);
@@ -133,19 +134,21 @@ class manager {
         $sumelements = 0;
         $sumcontent = 0;
         $sumat = 0;
+        $sumuniqueat = 0;
         $sumdone = 0;
+        $sumcheck = 0;
 
         foreach ($all_courses_data as $data) {
-            $gr = $data['gr'] ?? 0;
-            $t = $data['t'] ?? 0;
-            $elements = $gr + $t;
+            $elements = (int)($data['elements_count'] ?? (($data['gr'] ?? 0) + ($data['t'] ?? 0)));
 
-            if ($elements > 0) {
+            if ($elements > 5) {
                 $filledcount++;
                 $sumelements += $elements;
                 $sumcontent += $data['content'] ?? 0;
                 $sumat += $data['at'] ?? 0;
+                $sumuniqueat += $data['unique_at'] ?? 0;
                 $sumdone += $data['done'] ?? 0;
+                $sumcheck += $data['check'] ?? 0;
             }
 
             if (!empty($data['is_live'])) {
@@ -161,7 +164,9 @@ class manager {
             'avg_elements' => $filledcount > 0 ? $sumelements / $filledcount : 0,
             'avg_content' => $filledcount > 0 ? $sumcontent / $filledcount : 0,
             'avg_at' => $filledcount > 0 ? $sumat / $filledcount : 0,
+            'avg_unique_at' => $filledcount > 0 ? $sumuniqueat / $filledcount : 0,
             'avg_done' => $filledcount > 0 ? $sumdone / $filledcount : 0,
+            'avg_check' => $filledcount > 0 ? $sumcheck / $filledcount : 0,
         ];
     }
 
@@ -272,7 +277,7 @@ class manager {
     }
 
     private function get_calculation_version(): string {
-        return 'collect-v1';
+        return 'collect-v2';
     }
 
     private function elapsed_ms(float $start): int {

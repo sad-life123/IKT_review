@@ -1,6 +1,7 @@
 SELECT
     l.courseid,
     l.userid,
+    l.contextinstanceid,
     l.contextlevel,
     l.crud,
     l.action

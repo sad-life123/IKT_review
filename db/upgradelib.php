@@ -20,7 +20,7 @@ function local_ikt_review_ensure_logstore_index(): void {
     $DB->execute("
         CREATE INDEX IF NOT EXISTS {$indexname}
             ON {$tablename} (timecreated, courseid)
-            INCLUDE (userid, contextlevel, crud, action)
+            INCLUDE (userid, contextinstanceid, contextlevel, crud, action)
             WHERE contextlevel = 70 OR action = 'submitted'
     ");
 }
@@ -28,7 +28,7 @@ function local_ikt_review_ensure_logstore_index(): void {
 function local_ikt_review_logstore_primary_index_name(): string {
     global $DB;
 
-    return $DB->get_prefix() . 'lssl_ikt_time_course_partial_ix';
+    return $DB->get_prefix() . 'lssl_ikt_time_course_v2_ix';
 }
 
 function local_ikt_review_logstore_alternative_index_name(): string {

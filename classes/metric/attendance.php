@@ -15,19 +15,26 @@ class attendance extends base_metric {
     }
 
     public function calculate(?int $runid = null): array {
-        $records = $this->get_snap_records($runid, 'courseid, view_count, gr_count, t_count');
+        $records = $this->get_snap_records($runid, 'courseid, view_count, unique_view_count, gr_count, t_count, student_count');
         $results = [];
 
         foreach ($records as $record) {
             $viewcount = (int)$record->view_count;
+            $uniqueviewcount = (int)$record->unique_view_count;
             $elementscount = (int)$record->gr_count + (int)$record->t_count;
-            $value = $elementscount > 0 ? $viewcount / $elementscount : 0;
+            $studentcount = (int)$record->student_count;
+            $denominator = $studentcount * $elementscount;
+            $value = $denominator > 0 ? $viewcount / $denominator : 0;
+            $uniquevalue = $denominator > 0 ? $uniqueviewcount / $denominator : 0;
 
             $results[$record->courseid] = [
                 'courseid' => $record->courseid,
                 'view_count' => $viewcount,
+                'unique_view_count' => $uniqueviewcount,
                 'elements_count' => $elementscount,
+                'student_count' => $studentcount,
                 'at' => $value,
+                'unique_at' => $uniquevalue,
             ];
         }
 
@@ -35,6 +42,9 @@ class attendance extends base_metric {
     }
 
     protected function get_value_payload(array $data): array {
-        return $this->single_value((float)$data['at']);
+        return [
+            'value' => (float)$data['at'],
+            'unique_value' => (float)$data['unique_at'],
+        ];
     }
 }
