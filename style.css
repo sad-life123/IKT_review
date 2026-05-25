@@ -1,0 +1,25 @@
+.local-ikt-review-wrap .ikt-review-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.local-ikt-review-wrap .ikt-review-form .form-group {
+    margin-bottom: 0;
+}
+
+.local-ikt-review-wrap .custom-moodle-table th {
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+}
+
+.local-ikt-review-wrap .custom-moodle-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+}
+
+.local-ikt-review-wrap .summary-table td {
+    padding: 6px 0;
+    font-size: 1.05rem;
+}

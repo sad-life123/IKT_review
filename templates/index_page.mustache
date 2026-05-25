@@ -1,0 +1,91 @@
+<div class="local-ikt-review-wrap">
+    
+    {{#form}}
+    <div class="card p-3 mb-4 bg-light shadow-sm border-0">
+        <form method="post" action="{{action_url}}" class="form-inline ikt-review-form">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            
+            <div class="form-group mr-3">
+                <label for="ikt-review-periodfrom" class="mr-2 font-weight-bold">{{str_periodfrom}}:</label>
+                <input type="date" id="ikt-review-periodfrom" name="periodfrom" value="{{from_date}}" class="form-control">
+            </div>
+            
+            <div class="form-group mr-3">
+                <label for="ikt-review-periodto" class="mr-2 font-weight-bold">{{str_periodto}}:</label>
+                <input type="date" id="ikt-review-periodto" name="periodto" value="{{to_date}}" class="form-control">
+            </div>
+            
+            <button type="submit" name="action" value="run" class="btn btn-primary font-weight-bold shadow-sm">
+                <i class="fa fa-play mr-1"></i> {{str_runreview}}
+            </button>
+        </form>
+    </div>
+    {{/form}}
+
+    {{#summary}}
+    <div class="card mb-4 border-left border-info shadow-sm">
+        <div class="card-header bg-white font-weight-bold text-info border-0 pb-0">
+            <h3>{{str_summary}}</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-borderless m-0 summary-table">
+                <tbody>
+                    <tr>
+                        <td class="font-weight-bold text-muted" style="width: 250px;">{{str_latestrun}}:</td>
+                        <td><span class="badge badge-secondary"># {{id}}</span></td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold text-muted">{{str_courses}}:</td>
+                        <td class="font-weight-bold text-dark">{{courses}}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold text-muted">{{str_metrics}}:</td>
+                        <td class="font-weight-bold text-dark">{{metrics}}</td>
+                    </tr>
+                    {{#error}}
+                    <tr class="table-danger">
+                        <td class="font-weight-bold text-danger">{{str_error}}:</td>
+                        <td class="text-danger font-italic">{{error}}</td>
+                    </tr>
+                    {{/error}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{/summary}}
+
+    {{#has_runs}}
+    <div class="runs-history-block mt-4">
+        <h3 class="mb-3 text-secondary font-weight-bold">{{str_runs}}</h3>
+        <div class="table-responsive bg-white rounded shadow-sm border">
+            <table class="table table-striped table-hover m-0 custom-moodle-table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>{{str_periodfrom}}</th>
+                        <th>{{str_periodto}}</th>
+                        <th>{{str_status}}</th>
+                        <th>{{str_duration}}</th>
+                        <th>{{str_version}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#runs}}
+                    <tr>
+                        <td><strong>{{id}}</strong></td>
+                        <td>{{periodfrom}}</td>
+                        <td>{{periodto}}</td>
+                        <td>
+                            <span class="badge {{#status}}badge-success{{/status}}">{{status}}</span>
+                        </td>
+                        <td><i class="fa fa-clock-o text-muted mr-1"></i> {{duration}}</td>
+                        <td><code class="text-muted">{{calculationversion}}</code></td>
+                    </tr>
+                    {{/runs}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{/has_runs}}
+
+</div>
