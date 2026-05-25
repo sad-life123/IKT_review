@@ -49,14 +49,24 @@ class manager {
 
             $moduleids = $this->get_module_ids(['bigbluebuttonbn']);
 
-            $this->execute_step($runid, 'log_aggregate', function() use ($periodfrom, $periodto) {
+            $this->execute_step($runid, 'log_filter', function() use ($periodfrom, $periodto) {
                 global $DB;
+                $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_log_filtered');
                 $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_log_agg');
-                $sql = $this->get_sql('collect/log_aggregate.sql');
+                $sql = $this->get_sql('collect/log_filter.sql');
                 $DB->execute($sql, $this->filter_params($sql, [
                     'periodfrom' => $periodfrom,
                     'periodto' => $periodto,
                 ]));
+                $DB->execute('CREATE INDEX tmp_ikt_review_log_filtered_course_idx ON tmp_ikt_review_log_filtered(courseid)');
+                $DB->execute('ANALYZE tmp_ikt_review_log_filtered');
+                return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_log_filtered');
+            });
+
+            $this->execute_step($runid, 'log_aggregate', function() {
+                global $DB;
+                $sql = $this->get_sql('collect/log_aggregate.sql');
+                $DB->execute($sql);
                 $DB->execute('CREATE INDEX tmp_ikt_review_log_agg_course_idx ON tmp_ikt_review_log_agg(courseid)');
                 $DB->execute('ANALYZE tmp_ikt_review_log_agg');
                 return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_log_agg');
@@ -180,7 +190,14 @@ class manager {
             $rows = (int)$callback();
             $transaction->allow_commit();
         } catch (\Throwable $e) {
-            $transaction->rollback($e);
+            try {
+                $transaction->rollback($e);
+            } catch (\Throwable $rollbackexception) {
+                $e = $rollbackexception;
+            }
+
+            $this->log($runid, 'error', $step, $this->describe_exception($e), $this->elapsed_ms($start), $rows);
+            throw $e;
         }
 
         $this->log($runid, 'info', $step, 'Step finished', $this->elapsed_ms($start), $rows);
@@ -262,5 +279,15 @@ class manager {
 
     private function elapsed_ms(float $start): int {
         return (int)round((microtime(true) - $start) * 1000);
+    }
+
+    private function describe_exception(\Throwable $exception): string {
+        $message = $exception->getMessage();
+
+        if (property_exists($exception, 'debuginfo') && !empty($exception->debuginfo)) {
+            $message .= ' | Debug: ' . $exception->debuginfo;
+        }
+
+        return $message;
     }
 }

@@ -11,8 +11,6 @@ require_capability('moodle/site:config', $context);
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/ikt_review/index.php'));
-$PAGE->set_title(get_string('pluginname', 'local_ikt_review'));
-$PAGE->set_heading(get_string('pluginname', 'local_ikt_review'));
 
 $manager = new \local_ikt_review\manager();
 $message = null;
