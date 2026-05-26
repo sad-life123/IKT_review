@@ -29,7 +29,7 @@ SELECT
     COUNT(cm.id) FILTER (WHERE cs.visible = 1 AND m.name = 'book'),
     COUNT(cm.id) FILTER (WHERE cs.visible = 1 AND m.name = 'url'),
     COUNT(cm.id) FILTER (WHERE cs.visible = 1 AND m.name IN ('assign', 'quiz', 'vpl')),
-    COUNT(cm.id) FILTER (WHERE cs.visible = 1 AND m.name IN ('resource', 'page', 'lesson', 'book', 'url')),
+    COUNT(cm.id) FILTER (WHERE cs.visible = 1 AND m.name IN ('resource', 'page', 'lesson', 'book')),
     :now
   FROM tmp_ikt_review_courses tc
   LEFT JOIN {course_modules} cm ON cm.course = tc.courseid AND cm.visible = 1

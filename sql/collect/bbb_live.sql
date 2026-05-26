@@ -14,6 +14,21 @@ bbb_filter AS (
        AND cm.instance = b.id
        AND cm.module = :bbbmoduleid
        AND cm.visible = 1
+      JOIN {course_sections} cs ON cs.id = cm.section AND cs.visible = 1
+),
+course_students AS (
+    SELECT DISTINCT
+        e.courseid,
+        ue.userid
+      FROM tmp_ikt_review_courses tc
+      JOIN {enrol} e ON e.courseid = tc.courseid
+      JOIN {user_enrolments} ue ON ue.enrolid = e.id
+      JOIN {context} ctx ON ctx.contextlevel = 50 AND ctx.instanceid = tc.courseid
+      JOIN {role_assignments} ra ON ra.contextid = ctx.id AND ra.userid = ue.userid
+      JOIN {role} r ON r.id = ra.roleid
+     WHERE e.status = 0
+       AND ue.status = 0
+       AND r.shortname = 'student'
 ),
 joins AS (
     SELECT
@@ -32,7 +47,8 @@ teacher_joins AS (
     SELECT
         j.bbb_id,
         j.courseid,
-        MAX(j.timecreated) AS last_teacher_join
+        j.userid,
+        j.timecreated
       FROM joins j
      WHERE EXISTS (
         SELECT 1
@@ -46,42 +62,38 @@ teacher_joins AS (
                OR (ctx.contextlevel = 70 AND ctx.instanceid = j.cmid)
            )
      )
-     GROUP BY j.bbb_id, j.courseid
 ),
-participant_window AS (
+student_joins AS (
     SELECT DISTINCT
         j.bbb_id,
+        j.courseid,
         j.userid,
         j.timecreated
       FROM joins j
-     WHERE NOT EXISTS (
-        SELECT 1
-          FROM {role_assignments} ra
-          JOIN {role} r ON r.id = ra.roleid
-          JOIN {context} ctx ON ctx.id = ra.contextid
-         WHERE ra.userid = j.userid
-           AND r.shortname IN ('editingteacher', 'teacher')
-           AND (
-               (ctx.contextlevel = 50 AND ctx.instanceid = j.courseid)
-               OR (ctx.contextlevel = 70 AND ctx.instanceid = j.cmid)
-           )
-     )
+      JOIN course_students cs ON cs.courseid = j.courseid AND cs.userid = j.userid
+),
+event_windows AS (
+    SELECT bbb_id, courseid, timecreated AS window_start FROM teacher_joins
+    UNION
+    SELECT bbb_id, courseid, timecreated AS window_start FROM student_joins
 ),
 live_bbb AS (
     SELECT
-        t.courseid,
-        t.bbb_id,
-        COUNT(DISTINCT p.userid) AS participants
-      FROM teacher_joins t
-      LEFT JOIN participant_window p ON p.bbb_id = t.bbb_id
-       AND p.timecreated BETWEEN (t.last_teacher_join - 3600) AND (t.last_teacher_join + 3600)
-     GROUP BY t.courseid, t.bbb_id, t.last_teacher_join
-    HAVING COUNT(DISTINCT p.userid) >= 4
+        w.courseid,
+        w.bbb_id
+      FROM event_windows w
+      LEFT JOIN teacher_joins t ON t.bbb_id = w.bbb_id
+       AND t.timecreated BETWEEN w.window_start AND (w.window_start + 3600)
+      LEFT JOIN student_joins s ON s.bbb_id = w.bbb_id
+       AND s.timecreated BETWEEN w.window_start AND (w.window_start + 3600)
+     GROUP BY w.courseid, w.bbb_id, w.window_start
+    HAVING COUNT(DISTINCT t.userid) >= 1
+       AND COUNT(DISTINCT s.userid) >= 4
 ),
 course_live_bbb AS (
     SELECT
         courseid,
-        COUNT(*) AS live_bbb_count
+        COUNT(DISTINCT bbb_id) AS live_bbb_count
       FROM live_bbb
      GROUP BY courseid
 )
