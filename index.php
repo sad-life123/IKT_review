@@ -74,6 +74,10 @@ if ($latestrun) {
         'id' => $latestrun->id,
         'primary_indicators' => [
             [
+                'label' => get_string('report_total_courses', 'local_ikt_review'),
+                'value' => local_ikt_review_format_int($reportsummary['total_courses'] ?? 0),
+            ],
+            [
                 'label' => get_string('report_filled_count', 'local_ikt_review'),
                 'value' => local_ikt_review_format_int($reportsummary['filled_count'] ?? 0),
             ],
