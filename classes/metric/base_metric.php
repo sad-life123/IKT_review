@@ -85,7 +85,4 @@ abstract class base_metric {
         return $DB->get_records('local_ikt_review_snap', ['runid' => $resolvedrunid], 'courseid ASC', $fields);
     }
 
-    protected function single_value(float $value): array {
-        return ['value' => $value];
-    }
 }

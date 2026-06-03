@@ -39,5 +39,15 @@ function xmldb_local_ikt_review_upgrade($oldversion): bool {
         upgrade_plugin_savepoint(true, 2028052502, 'local', 'ikt_review');
     }
 
+    if ($oldversion < 2028052506) {
+        local_ikt_review_ensure_required_indexes();
+
+        upgrade_plugin_savepoint(true, 2028052506, 'local', 'ikt_review');
+    }
+
+    if ($oldversion < 2028052511) {
+        upgrade_plugin_savepoint(true, 2028052511, 'local', 'ikt_review');
+    }
+
     return true;
 }

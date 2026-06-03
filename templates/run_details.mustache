@@ -1,0 +1,121 @@
+{{#details}}
+<div class="card mb-4 border-left border-warning shadow-sm">
+    <div class="card-header bg-white border-0 pb-0">
+        <h3 class="text-warning">{{str_details_title}}</h3>
+    </div>
+    <div class="card-body">
+        <div class="run-details-cards">
+            {{#cards}}
+            <div class="run-details-card">
+                <div class="run-details-card-value">{{value}}</div>
+                <div class="run-details-card-label">{{label}}</div>
+                <div class="run-details-card-hint">{{hint}}</div>
+            </div>
+            {{/cards}}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white font-weight-bold">{{str_details_histograms}}</div>
+            <div class="card-body">
+                {{#histograms}}
+                <div class="histogram-block mb-4">
+                    <h5 class="mb-3">{{title}}</h5>
+                    {{#rows}}
+                    <div class="histogram-row">
+                        <div class="histogram-label">{{label}}</div>
+                        <div class="histogram-track">
+                            <div class="histogram-bar" style="width: {{percent}}%;"></div>
+                        </div>
+                        <div class="histogram-count">{{count}}</div>
+                    </div>
+                    {{/rows}}
+                </div>
+                {{/histograms}}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white font-weight-bold">{{str_details_quality}}</div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless m-0">
+                    <tbody>
+                        {{#quality}}
+                        <tr>
+                            <td class="text-muted font-weight-bold">{{label}}</td>
+                            <td class="text-right font-weight-bold">{{value}}</td>
+                        </tr>
+                        {{/quality}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white font-weight-bold">{{str_details_module_counts}}</div>
+            <div class="card-body">
+                {{#module_counts}}
+                <div class="histogram-row">
+                    <div class="histogram-label">{{label}}</div>
+                    <div class="histogram-track">
+                        <div class="histogram-bar histogram-bar-muted" style="width: {{percent}}%;"></div>
+                    </div>
+                    <div class="histogram-count">{{count}}</div>
+                </div>
+                {{/module_counts}}
+            </div>
+        </div>
+    </div>
+</div>
+
+    {{#org_structure.has_departments}}
+    <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-white font-weight-bold">{{str_org_departments}}</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-striped custom-moodle-table">
+                <thead>
+                    <tr>
+                        <th>{{str_org_department}}</th>
+                        <th>{{str_org_faculty}}</th>
+                        <th>{{str_org_degree}}</th>
+                        <th>{{str_org_courses}}</th>
+                        <th>{{str_org_filled}}</th>
+                        <th>{{str_org_filled_ratio}}</th>
+                        <th>{{str_org_students}}</th>
+                        <th>{{str_org_avg_content}}</th>
+                        <th>{{str_org_avg_at}}</th>
+                        <th>{{str_org_avg_unique_at}}</th>
+                        <th>{{str_org_avg_done}}</th>
+                        <th>{{str_org_avg_check}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#org_structure.department_rows}}
+                    <tr>
+                        <td class="font-weight-bold">{{label}}</td>
+                        <td>{{faculty}}</td>
+                        <td>{{degree}}</td>
+                        <td>{{total_courses}}</td>
+                        <td>{{filled_courses}}</td>
+                        <td>{{filled_ratio}}</td>
+                        <td>{{students}}</td>
+                        <td>{{avg_content}}</td>
+                        <td>{{avg_at}}</td>
+                        <td>{{avg_unique_at}}</td>
+                        <td>{{avg_done}}</td>
+                        <td>{{avg_check}}</td>
+                    </tr>
+                    {{/org_structure.department_rows}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+    {{/org_structure.has_departments}}
+{{/details}}

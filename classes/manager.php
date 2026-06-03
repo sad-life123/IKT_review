@@ -1,12 +1,37 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
+// fix me later
 
 namespace local_ikt_review;
 
 defined('MOODLE_INTERNAL') || die();
 
 class manager {
+    public const CALCULATION_VERSION = 'collect-v4';
+    public const PIPELINE_STEPS = [
+        'courses',
+        'course_students',
+        'log_filter',
+        'log_aggregate',
+        'course_info',
+        'course_items',
+        'bbb_live',
+        'students',
+        'views',
+        'answers',
+        'grades',
+        'metric_content',
+        'metric_attendance',
+        'metric_bbb',
+        'metric_done',
+        'metric_check',
+        'metric_performance',
+    ];
+
     private const STATEMENT_TIMEOUT = '30min';
+    private const LOG_AGGREGATE_WORK_MEM = '1GB'; // remove me if we die
+    private const STALE_RUNNING_RUN_TTL = 86400;
+    private const FULL_TIME_STUDENT_ROLE_SHORTNAME = 'full-time-student'; // db const
 
     /** @var metric\base_metric[] */
     private array $metrics;
@@ -22,33 +47,98 @@ class manager {
         ];
     }
 
-    public function run(int $periodfrom, int $periodto): int {
-        global $DB;
-
+    public function queue_run(int $periodfrom, int $periodto, ?array $courseids = null): int {
         if ($periodfrom > $periodto) {
             throw new \coding_exception('periodfrom must be less than or equal to periodto');
         }
 
-        $runid = $DB->insert_record('local_ikt_review_run', (object)[
-            'periodfrom' => $periodfrom,
-            'periodto' => $periodto,
-            'status' => 'running',
-            'timestarted' => time(),
-            'timefinished' => 0,
-            'calculationversion' => $this->get_calculation_version(),
-            'error' => null,
+        $courseids = $this->normalize_course_ids($courseids);
+        $runid = $this->create_run_record($periodfrom, $periodto, $courseids, 'queued');
+        $task = new \local_ikt_review\task\calculation_task();
+        $task->set_custom_data([
+            'runid' => $runid,
+            'courseids' => $courseids,
         ]);
 
         try {
-            $this->execute_step($runid, 'courses', function() {
+            \core\task\manager::queue_adhoc_task($task);
+        } catch (\Throwable $e) {
+            $this->finish_run($runid, 'failed', $e->getMessage());
+            throw $e;
+        }
+
+        return $runid;
+    }
+
+    public function execute_queued_run(int $runid, ?array $courseids = null): void {
+        global $DB;
+
+        $run = $DB->get_record('local_ikt_review_run', ['id' => $runid], '*', MUST_EXIST);
+        if ($run->status !== 'queued') {
+            return;
+        }
+
+        $factory = \core\lock\lock_config::get_lock_factory('local_ikt_review');
+        $lock = $factory->get_lock('calculation', 0);
+        if (!$lock) {
+            throw new \moodle_exception('error_calculationlocked', 'local_ikt_review');
+        }
+
+        try {
+            $DB->update_record('local_ikt_review_run', (object)[
+                'id' => $runid,
+                'status' => 'running',
+                'timestarted' => time(),
+                'timefinished' => 0,
+                'error' => null,
+            ]);
+            $this->execute_run($runid, $this->normalize_course_ids($courseids));
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function execute_run(int $runid, array $courseids): void {
+        global $DB;
+
+        $run = $DB->get_record('local_ikt_review_run', ['id' => $runid], 'id, periodfrom, periodto', MUST_EXIST);
+        $periodfrom = (int)$run->periodfrom;
+        $periodto = (int)$run->periodto;
+
+        try {
+            $this->execute_step($runid, 'courses', function() use ($courseids) {
                 global $DB;
                 $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_courses');
-                $DB->execute($this->get_sql('collect/courses.sql'));
+
+                if ($courseids) {
+                    [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'courseid');
+                    $DB->execute("CREATE TEMP TABLE tmp_ikt_review_courses AS
+                        SELECT id AS courseid
+                          FROM {course}
+                         WHERE visible = 1
+                           AND id $insql", $params);
+                } else {
+                    $DB->execute($this->get_sql('collect/courses.sql'));
+                }
+
+                $DB->execute('CREATE UNIQUE INDEX tmp_ikt_review_courses_course_idx ON tmp_ikt_review_courses(courseid)');
                 $DB->execute('ANALYZE tmp_ikt_review_courses');
                 return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_courses');
             });
 
             $moduleids = $this->get_module_ids(['bigbluebuttonbn']);
+
+            $this->execute_step($runid, 'course_students', function() {
+                global $DB;
+                $DB->execute('DROP TABLE IF EXISTS tmp_ikt_review_course_students');
+                $sql = $this->get_sql('collect/course_students.sql');
+                $DB->execute($sql, $this->filter_params($sql, [
+                    'studentrole' => self::FULL_TIME_STUDENT_ROLE_SHORTNAME,
+                ]));
+                $DB->execute('CREATE INDEX tmp_ikt_review_course_students_course_user_idx ON tmp_ikt_review_course_students(courseid, userid)');
+                $DB->execute('ANALYZE tmp_ikt_review_course_students');
+                return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_course_students');
+            });
 
             $this->execute_step($runid, 'log_filter', function() use ($periodfrom, $periodto) {
                 global $DB;
@@ -59,11 +149,13 @@ class manager {
                     'periodfrom' => $periodfrom,
                     'periodto' => $periodto,
                 ]));
+                $DB->execute('ANALYZE tmp_ikt_review_log_filtered');
                 return $DB->count_records_sql('SELECT COUNT(*) FROM tmp_ikt_review_log_filtered');
             });
 
             $this->execute_step($runid, 'log_aggregate', function() {
                 global $DB;
+                $DB->execute("SET LOCAL work_mem = '" . self::LOG_AGGREGATE_WORK_MEM . "'");
                 $sql = $this->get_sql('collect/log_aggregate.sql');
                 $DB->execute($sql);
                 $DB->execute('CREATE INDEX tmp_ikt_review_log_agg_course_idx ON tmp_ikt_review_log_agg(courseid)');
@@ -76,6 +168,10 @@ class manager {
                 'now' => time(),
                 'periodfrom' => $periodfrom,
                 'periodto' => $periodto,
+                'assignperiodfrom' => $periodfrom,
+                'assignperiodto' => $periodto,
+                'quizperiodfrom' => $periodfrom,
+                'quizperiodto' => $periodto,
                 'bbbmoduleid' => $moduleids['bigbluebuttonbn'] ?? 0,
             ];
 
@@ -103,7 +199,6 @@ class manager {
             throw $e;
         }
 
-        return $runid;
     }
 
     public function get_all_metrics(?int $runid = null): array {
@@ -172,7 +267,19 @@ class manager {
 
     public function get_latest_run(): ?\stdClass {
         global $DB;
-        $runs = $DB->get_records('local_ikt_review_run', null, 'id DESC', '*', 0, 1);
+        $runs = $DB->get_records_select(
+            'local_ikt_review_run',
+            'status = :status AND calculationversion NOT LIKE :selectedversion AND calculationversion NOT LIKE :syntheticversion',
+            [
+                'status' => 'finished',
+                'selectedversion' => '%-selected%',
+                'syntheticversion' => '%-synthetic%',
+            ],
+            'id DESC',
+            '*',
+            0,
+            1
+        );
         return $runs ? reset($runs) : null;
     }
 
@@ -181,11 +288,51 @@ class manager {
         return $DB->get_records('local_ikt_review_run', null, 'id DESC', '*', 0, $limit);
     }
 
+    public function get_recent_production_runs(int $limit = 10): array {
+        global $DB;
+        return $DB->get_records_select(
+            'local_ikt_review_run',
+            'calculationversion NOT LIKE :selectedversion AND calculationversion NOT LIKE :syntheticversion',
+            [
+                'selectedversion' => '%-selected%',
+                'syntheticversion' => '%-synthetic%',
+            ],
+            'id DESC',
+            '*',
+            0,
+            $limit
+        );
+    }
+
+    public function fail_stale_runs(): int {
+        global $DB;
+
+        $now = time();
+        [$insql, $params] = $DB->get_in_or_equal(['queued', 'running'], SQL_PARAMS_NAMED, 'status');
+        $params['cutoff'] = $now - self::STALE_RUNNING_RUN_TTL;
+        $runs = $DB->get_records_select(
+            'local_ikt_review_run',
+            "status $insql AND timefinished = 0 AND timestarted < :cutoff",
+            $params,
+            'id ASC',
+            'id'
+        );
+
+        foreach ($runs as $run) {
+            $message = 'Run marked as failed because it stayed queued or running for more than 24 hours.';
+            $this->log((int)$run->id, 'error', 'run', $message);
+            $this->finish_run((int)$run->id, 'failed', $message);
+        }
+
+        return count($runs);
+    }
+
     private function execute_step(int $runid, string $step, callable $callback): int {
         global $DB;
 
         $start = microtime(true);
         $rows = 0;
+        $this->log($runid, 'info', $step, 'Step started');
         $transaction = $DB->start_delegated_transaction();
 
         try {
@@ -240,6 +387,20 @@ class manager {
         ]);
     }
 
+    private function create_run_record(int $periodfrom, int $periodto, array $courseids, string $status): int {
+        global $DB;
+
+        return (int)$DB->insert_record('local_ikt_review_run', (object)[
+            'periodfrom' => $periodfrom,
+            'periodto' => $periodto,
+            'status' => $status,
+            'timestarted' => time(),
+            'timefinished' => 0,
+            'calculationversion' => $courseids ? self::CALCULATION_VERSION . '-selected' : self::CALCULATION_VERSION,
+            'error' => null,
+        ]);
+    }
+
     private function get_module_ids(array $names): array {
         global $DB;
 
@@ -258,6 +419,22 @@ class manager {
         return $moduleids;
     }
 
+    private function normalize_course_ids(?array $courseids): array {
+        if (!$courseids) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($courseids as $courseid) {
+            $courseid = (int)$courseid;
+            if ($courseid > 0) {
+                $normalized[$courseid] = $courseid;
+            }
+        }
+
+        return array_values($normalized);
+    }
+
     private function get_sql(string $filename): string {
         global $CFG;
 
@@ -274,10 +451,6 @@ class manager {
         $usedparams = array_flip($matches[1]);
 
         return array_intersect_key($params, $usedparams);
-    }
-
-    private function get_calculation_version(): string {
-        return 'collect-v2';
     }
 
     private function elapsed_ms(float $start): int {

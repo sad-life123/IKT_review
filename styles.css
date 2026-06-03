@@ -1,0 +1,111 @@
+.local-ikt-review-wrap .ikt-review-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.local-ikt-review-wrap .ikt-review-form .form-group {
+    margin-bottom: 0;
+}
+
+.local-ikt-review-wrap .custom-moodle-table th {
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+}
+
+.local-ikt-review-wrap .custom-moodle-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+}
+
+.local-ikt-review-wrap .summary-table td {
+    padding: 6px 0;
+    font-size: 1.05rem;
+}
+
+.local-ikt-review-wrap .run-details-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.local-ikt-review-wrap .run-details-card {
+    min-height: 118px;
+    padding: 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.local-ikt-review-wrap .run-details-card-value {
+    font-size: 1.7rem;
+    line-height: 1.1;
+    font-weight: 700;
+    color: #212529;
+}
+
+.local-ikt-review-wrap .run-details-card-label {
+    margin-top: 6px;
+    font-weight: 700;
+    color: #495057;
+}
+
+.local-ikt-review-wrap .run-details-card-hint {
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: #6c757d;
+}
+
+.local-ikt-review-wrap .histogram-row {
+    display: grid;
+    grid-template-columns: 72px minmax(120px, 1fr) 72px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.local-ikt-review-wrap .histogram-label {
+    font-weight: 700;
+    color: #495057;
+}
+
+.local-ikt-review-wrap .histogram-track {
+    height: 16px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #e9ecef;
+}
+
+.local-ikt-review-wrap .histogram-bar {
+    height: 100%;
+    min-width: 0;
+    border-radius: 4px;
+    background: #17a2b8;
+}
+
+.local-ikt-review-wrap .histogram-bar-muted {
+    background: #6c757d;
+}
+
+.local-ikt-review-wrap .histogram-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+@media (max-width: 992px) {
+    .local-ikt-review-wrap .run-details-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .local-ikt-review-wrap .run-details-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .local-ikt-review-wrap .histogram-row {
+        grid-template-columns: 56px minmax(80px, 1fr) 56px;
+    }
+}

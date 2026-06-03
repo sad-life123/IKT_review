@@ -2,7 +2,6 @@
 // This file is part of Moodle - http://moodle.org/
 
 require_once __DIR__ . '/../../config.php';
-require_once $CFG->libdir . '/tablelib.php';
 
 require_login();
 
@@ -13,8 +12,10 @@ $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/ikt_review/index.php'));
 $PAGE->set_title(get_string('pluginname', 'local_ikt_review'));
 $PAGE->set_heading(get_string('pluginname', 'local_ikt_review'));
+$PAGE->requires->js_call_amd('local_ikt_review/run_details', 'init');
 
 $manager = new \local_ikt_review\manager();
+$manager->fail_stale_runs();
 $message = null;
 
 $action = optional_param('action', '', PARAM_ALPHA);
@@ -26,51 +27,65 @@ if ($action === 'run') {
     $periodto = usergetmidnight($periodto) + DAYSECS - 1;
 
     try {
-        $runid = $manager->run($periodfrom, $periodto);
-        $message = [
-            'text' => get_string('runfinished', 'local_ikt_review', $runid),
-            'type' => 'success'
-        ];
+        $runid = $manager->queue_run($periodfrom, $periodto);
+        redirect(
+            new moodle_url('/local/ikt_review/index.php'),
+            get_string('runqueued', 'local_ikt_review', $runid),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
     } catch (Throwable $e) {
         $message = [
             'text' => local_ikt_review_describe_exception($e),
-            'type' => 'error'
+            'type' => 'error',
         ];
     }
 }
 
-$form_data = [
+$submittedfrom = optional_param('periodfrom', '', PARAM_RAW);
+$submittedto = optional_param('periodto', '', PARAM_RAW);
+$formdata = [
     'action_url' => (new moodle_url('/local/ikt_review/index.php'))->out(false),
     'sesskey' => sesskey(),
-    'from_date' => date('Y-m-d', time() - 180 * DAYSECS),
-    'to_date' => date('Y-m-d'),
+    'from_date' => $submittedfrom !== '' ? $submittedfrom : date('Y-m-d', time() - 180 * DAYSECS),
+    'to_date' => $submittedto !== '' ? $submittedto : date('Y-m-d'),
     'str_periodfrom' => get_string('periodfrom', 'local_ikt_review'),
     'str_periodto' => get_string('periodto', 'local_ikt_review'),
     'str_runreview' => get_string('runreview', 'local_ikt_review'),
 ];
-$runs_list = [];
-$recent_runs = $manager->get_recent_runs();
-if (!empty($recent_runs)) {
-    foreach ($recent_runs as $run) {
-        $duration = $run->timefinished > 0 ? $run->timefinished - $run->timestarted : time() - $run->timestarted;
-        $runs_list[] = [
-            'id' => $run->id,
-            'periodfrom' => userdate($run->periodfrom),
-            'periodto' => userdate($run->periodto),
-            'status' => s($run->status),
-            'statusclass' => local_ikt_review_status_class((string)$run->status),
-            'duration' => format_time($duration),
-            'calculationversion' => s($run->calculationversion),
-        ];
-    }
+
+$runslist = [];
+$hasactiveruns = false;
+foreach ($manager->get_recent_production_runs() as $run) {
+    $duration = $run->timefinished > 0 ? $run->timefinished - $run->timestarted : time() - $run->timestarted;
+    $hasactiveruns = $hasactiveruns || in_array($run->status, ['queued', 'running'], true);
+    $runslist[] = [
+        'id' => (int)$run->id,
+        'timestarted' => userdate($run->timestarted),
+        'periodfrom' => userdate($run->periodfrom),
+        'periodto' => userdate($run->periodto),
+        'status' => s($run->status),
+        'statusclass' => local_ikt_review_status_class((string)$run->status),
+        'duration' => format_time($duration),
+        'has_details' => $run->status === 'finished',
+        'details_url' => (new moodle_url('/local/ikt_review/details.php', [
+            'runid' => $run->id,
+            'sesskey' => sesskey(),
+        ]))->out(false),
+        'str_details' => get_string('details', 'local_ikt_review'),
+        'str_details_error' => get_string('error_rundetailsload', 'local_ikt_review'),
+    ];
 }
 
-$summary_data = null;
+if ($hasactiveruns) {
+    $PAGE->requires->js_init_code('window.setTimeout(function() { window.location.reload(); }, 5000);');
+}
+
+$summarydata = null;
 $latestrun = $manager->get_latest_run();
 if ($latestrun) {
     $reportsummary = $manager->get_summary($manager->get_all_metrics((int)$latestrun->id));
-
-    $summary_data = [
+    $summarydata = [
         'id' => $latestrun->id,
         'primary_indicators' => [
             [
@@ -121,38 +136,44 @@ if ($latestrun) {
     ];
 }
 
-
 echo $OUTPUT->header();
 
 if ($message !== null) {
     echo $OUTPUT->notification($message['text'], $message['type']);
 }
 
-
-$template_context = [
-    'form' => $form_data,
-    'has_runs' => !empty($runs_list),
-    'runs' => $runs_list,
-    'summary' => $summary_data,
+echo $OUTPUT->render_from_template('local_ikt_review/index_page', [
+    'form' => $formdata,
+    'has_runs' => !empty($runslist),
+    'runs' => $runslist,
+    'summary' => $summarydata,
     'str_runs' => get_string('runs', 'local_ikt_review'),
+    'str_runstarted' => get_string('runstarted', 'local_ikt_review'),
     'str_summary' => get_string('reporttitle', 'local_ikt_review'),
     'str_latestrun' => get_string('latestrun', 'local_ikt_review'),
     'str_status' => get_string('status'),
     'str_duration' => get_string('duration', 'local_ikt_review'),
-    'str_version' => get_string('calculationversion', 'local_ikt_review'),
+    'str_details' => get_string('details', 'local_ikt_review'),
     'str_error' => get_string('error'),
-];
-
-echo $OUTPUT->render_from_template('local_ikt_review/index_page', $template_context);
+]);
 
 echo $OUTPUT->footer();
 
 function local_ikt_review_parse_date(string $date, int $default): int {
-    if ($date === '') { return $default; }
+    if ($date === '') {
+        return $default;
+    }
+
     $parts = explode('-', $date);
-    if (count($parts) !== 3) { return $default; }
+    if (count($parts) !== 3) {
+        return $default;
+    }
+
     [$year, $month, $day] = array_map('intval', $parts);
-    if (!checkdate($month, $day, $year)) { return $default; }
+    if (!checkdate($month, $day, $year)) {
+        return $default;
+    }
+
     return make_timestamp($year, $month, $day);
 }
 
@@ -162,18 +183,6 @@ function local_ikt_review_describe_exception(Throwable $exception): string {
         $message .= ' | Debug: ' . $exception->debuginfo;
     }
     return $message;
-}
-
-function local_ikt_review_format_int($value): string {
-    return (string)(int)$value;
-}
-
-function local_ikt_review_format_number($value, int $decimals): string {
-    return format_float((float)$value, $decimals);
-}
-
-function local_ikt_review_format_percent($ratio): string {
-    return format_float((float)$ratio * 100, 2) . '%';
 }
 
 function local_ikt_review_status_class(string $status): string {
@@ -186,4 +195,16 @@ function local_ikt_review_status_class(string $status): string {
     }
 
     return 'badge-secondary';
+}
+
+function local_ikt_review_format_int($value): string {
+    return (string)(int)$value;
+}
+
+function local_ikt_review_format_number($value, int $decimals): string {
+    return format_float((float)$value, $decimals);
+}
+
+function local_ikt_review_format_percent($ratio): string {
+    return format_float((float)$ratio * 100, 2) . '%';
 }

@@ -6,7 +6,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once __DIR__ . '/upgradelib.php';
 
 function xmldb_local_ikt_review_install(): bool {
-    local_ikt_review_ensure_logstore_index();
+    local_ikt_review_ensure_required_indexes();
 
     return true;
 }

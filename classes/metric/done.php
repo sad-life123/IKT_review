@@ -38,6 +38,6 @@ class done extends base_metric {
     }
 
     protected function get_value_payload(array $data): array {
-        return $this->single_value((float)$data['done']);
+        return ['value' => (float)$data['done']];
     }
 }
