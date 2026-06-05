@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Общие стили плагина и формы
+   ========================================================================== */
 .local-ikt-review-wrap .ikt-review-form {
     display: flex;
     flex-wrap: wrap;
@@ -8,6 +11,7 @@
     margin-bottom: 0;
 }
 
+/* Стили таблиц */
 .local-ikt-review-wrap .custom-moodle-table th {
     letter-spacing: 0.5px;
     font-size: 0.9rem;
@@ -24,6 +28,9 @@
     font-size: 1.05rem;
 }
 
+/* ==========================================================================
+   Карточки общей статистики (Топ модалки)
+   ========================================================================== */
 .local-ikt-review-wrap .run-details-cards {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -57,6 +64,9 @@
     color: #6c757d;
 }
 
+/* ==========================================================================
+   Мини-гистограммы (Внутри боковых карточек)
+   ========================================================================== */
 .local-ikt-review-wrap .histogram-row {
     display: grid;
     grid-template-columns: 72px minmax(120px, 1fr) 72px;
@@ -93,19 +103,191 @@
     font-variant-numeric: tabular-nums;
     font-weight: 700;
 }
+/* ==========================================================================
+   ФИКС: СМЕЩЕНИЕ ШКАЛЫ, СКРОЛЛ СТОЛБИКОВ И ТЕКСТ СНИЗУ
+   ========================================================================== */
 
-@media (max-width: 992px) {
-    .local-ikt-review-wrap .run-details-cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+/* Главный контейнер графика с фиксированной рамкой */
+.moodle-vertical-chart-container {
+    position: relative;
+    margin: 40px 0 20px 0;
+    padding-left: 60px; /* Место под шкалу процентов слева */
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-right: 20px;
 }
 
-@media (max-width: 576px) {
-    .local-ikt-review-wrap .run-details-cards {
-        grid-template-columns: 1fr;
-    }
+/* ФИКСИРОВАННАЯ СЕТКА ПРОЦЕНТОВ (Она стоит на месте и не скроллится) */
+.vertical-chart-grid {
+    position: absolute;
+    top: 70px; /* Опустили сетку, чтобы 0% совпала с осью над текстом */
+    left: 60px;
+    right: 20px;
+    height: 240px; /* Высота шкалы от 100% до 0% */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    pointer-events: none;
+    z-index: 2;
+}
 
-    .local-ikt-review-wrap .histogram-row {
-        grid-template-columns: 56px minmax(80px, 1fr) 56px;
-    }
+/* Линии разметки */
+.grid-line {
+    width: 100%;
+    border-bottom: 1px dashed #dee2e6;
+    position: relative;
+    height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* ТЕМНАЯ ОСЬ 0% (Проходит ровно под столбцами, над текстом) */
+.grid-line[data-level="0%"] {
+    border-bottom: 2px solid #495057 !important;
+}
+
+/* Цифры процентов на оси Y */
+.grid-line::before {
+    content: attr(data-level);
+    position: absolute;
+    left: -55px;
+    top: -9px;
+    width: 45px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: bold;
+}
+
+/* ОБЕРТКА ДЛЯ СКРОЛЛА (Позволяет крутить только столбцы и текст) */
+.vertical-chart-scroll-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    display: block !important;
+    margin-top: 50px; /* Подгоняем под уровень 100% на сетке */
+}
+
+/* Контейнер для всех колонок внутри скролла */
+.vertical-chart-bars-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important; /* Выравнивание по верхней точке */
+    box-sizing: border-box;
+    padding: 0 10px;
+    margin: 0 !important;
+    min-width: max-content; /* Дает растягиваться под скролл */
+    padding-bottom: 15px; /* Зазор под скроллбар */
+}
+
+/* Шаг одной колонки (Столбец сверху, подпись снизу) */
+.vertical-chart-column {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex: 0 0 130px !important; /* Твое хорошее расстояние между столбцами */
+    width: 130px !important;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* ТРЕК СТОЛБИКА: Высота совпадает с сеткой (240px) */
+.vertical-bar-track {
+    width: 100% !important;
+    height: 240px !important; 
+    display: flex !important;
+    align-items: flex-end !important; /* Столбик растет снизу вверх от оси */
+    justify-content: center !important;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative;
+}
+
+/* Синяя заливка столбика */
+.vertical-bar-fill {
+    width: 40px !important;
+    background: linear-gradient(180deg, #007bff 0%, #2196F3 100%) !important;
+    border-radius: 4px 4px 0 0;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    margin: 0 !important;
+}
+
+/* Текст процентов внутри/над столбиком */
+.vertical-bar-value {
+    color: #ffffff !important;
+    font-size: 0.72rem !important;
+    font-weight: bold !important;
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Выталкивание текста наверх для маленьких значений */
+.vertical-bar-fill[style*="height: 0%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 1%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 2%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 3%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 4%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 5%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 6%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 7%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 8%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 9%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 10%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 11%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 12%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 13%"] .vertical-bar-value,
+.vertical-bar-fill[style*="height: 14%"] .vertical-bar-value {
+    color: #495057 !important;
+    top: -20px !important;
+}
+
+/* ОБЕРТКА ТЕКСТА: Теперь идет СТРOГО под треком столбика (снизу оси) */
+.vertical-bar-label-box {
+    width: 100% !important;
+    text-align: center;
+    padding: 0 4px;
+    margin-top: 12px !important; /* Отступ вниз от черной оси */
+    box-sizing: border-box;
+    min-height: 60px; 
+}
+
+/* Стили самого текста подписи */
+.vertical-bar-label {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: #212529 !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    display: block;
+}
+
+/* Красивый тонкий вебкит-скроллбар */
+.vertical-chart-scroll-wrapper::-webkit-scrollbar {
+    height: 7px;
+}
+.vertical-chart-scroll-wrapper::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 4px;
+}
+.vertical-chart-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 4px;
+}
+.vertical-chart-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
 }

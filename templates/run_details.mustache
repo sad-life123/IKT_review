@@ -73,8 +73,8 @@
     </div>
 </div>
 
-    {{#org_structure.has_departments}}
-    <div class="card mb-4 shadow-sm">
+{{#org_structure.has_departments}}
+<div class="card mb-4 shadow-sm">
     <div class="card-header bg-white font-weight-bold">{{str_org_departments}}</div>
     <div class="card-body">
         <div class="table-responsive">
@@ -116,6 +116,51 @@
             </table>
         </div>
     </div>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-white font-weight-bold">Доля заполненных курсов по кафедрам (%)</div>
+    <div class="card-body">
+        
+        <div class="moodle-vertical-chart-container">
+            <div class="vertical-chart-grid">
+                <div class="grid-line" data-level="100%"></div>
+                <div class="grid-line" data-level="75%"></div>
+                <div class="grid-line" data-level="50%"></div>
+                <div class="grid-line" data-level="25%"></div>
+                <div class="grid-line" data-level="0%"></div>
+            </div>
+
+            <div class="vertical-chart-scroll-wrapper">
+                <div class="vertical-chart-inner">
+                    <div class="vertical-chart-bars-wrapper">
+                        {{#org_structure.department_rows}}
+                        <div class="vertical-chart-column">
+                            <div class="vertical-bar-track">
+                                <div class="vertical-bar-fill" style="height: {{filled_ratio_raw}}%;">
+                                    <span class="vertical-bar-value">{{filled_ratio_raw}}%</span>
+                                </div>
+                            </div>
+                            <div class="vertical-bar-label-box">
+                                <div class="vertical-bar-label" title="{{label}}">
+                                    {{label}}
+                                </div>
+                            </div>
+                        </div>
+                        {{/org_structure.department_rows}}
+                    </div>
+                </div>
+            </div>
+        </div> 
+
     </div>
-    {{/org_structure.has_departments}}
+</div>
+{{/org_structure.has_departments}}
 {{/details}}
+
+{{! Инициализация JS-модуля }}
+{{#js}}
+require(['local_ikt_review/run_details'], function(Module) {
+    Module.init();
+});
+{{/js}}

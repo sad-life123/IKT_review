@@ -129,11 +129,13 @@ class run_details_page {
 
     private function org_group_rows(array $groups): array {
         $rows = [];
-
-        foreach ($groups as $group) {
+foreach ($groups as $group) {
             $filledcourses = (int)($group['filled_courses'] ?? 0);
             $totalcourses = (int)($group['total_courses'] ?? 0);
             $avgdenominator = max(1, $filledcourses);
+            
+            // Считаем долю для графика
+            $ratio = $totalcourses > 0 ? $filledcourses / $totalcourses : 0;
 
             $rows[] = [
                 'label' => s($group['label'] ?? ''),
@@ -141,7 +143,11 @@ class run_details_page {
                 'degree' => s($group['degree'] ?? ''),
                 'total_courses' => $this->format_int($totalcourses),
                 'filled_courses' => $this->format_int($filledcourses),
-                'filled_ratio' => $this->format_percent($totalcourses > 0 ? $filledcourses / $totalcourses : 0),
+                'filled_ratio' => $this->format_percent($ratio),
+                
+                // ВСТАВИТЬ СТРОКУ НИЖЕ: Передаем чистый процент как число для JS графика
+                'filled_ratio_raw' => round($ratio * 100, 2), 
+                
                 'students' => $this->format_int($group['students'] ?? 0),
                 'avg_content' => $this->format_number(($group['sum_content'] ?? 0) / $avgdenominator, 4),
                 'avg_at' => $this->format_number(($group['sum_at'] ?? 0) / $avgdenominator, 4),
