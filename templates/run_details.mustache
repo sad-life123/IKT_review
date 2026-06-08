@@ -136,6 +136,8 @@
                     <div class="vertical-chart-bars-wrapper">
                         {{#org_structure.department_rows}}
                         <div class="vertical-chart-column">
+                            <div class="vertical-bar-total-courses">{{total_courses}}</div>
+                            
                             <div class="vertical-bar-track">
                                 <div class="vertical-bar-fill" style="height: {{filled_ratio_raw}}%;">
                                     <span class="vertical-bar-value">{{filled_ratio_raw}}%</span>
