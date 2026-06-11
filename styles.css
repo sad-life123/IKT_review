@@ -190,89 +190,113 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    flex: 0 0 130px !important; /* Твое хорошее расстояние между столбцами */
-    width: 130px !important;
+    flex: 0 0 70px !important; /* Твое хорошее расстояние между столбцами */
+    width: 70px !important;
     box-sizing: border-box;
     margin: 0 !important;
     padding: 0 !important;
 }
-
-/* ТРЕК СТОЛБИКА: Высота совпадает с сеткой (240px) */
-.vertical-bar-track {
-    width: 100% !important;
-    height: 240px !important; 
+/* Шаг одной колонки: добавляем position relative для абсолютного позиционирования цифр */
+.local-ikt-review-wrap .vertical-chart-column {
     display: flex !important;
-    align-items: flex-end !important; /* Столбик растет снизу вверх от оси */
-    justify-content: center !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex: 0 0 70px !important;
+    width: 70px !important;
     box-sizing: border-box;
     margin: 0 !important;
     padding: 0 !important;
-    position: relative;
+    position: relative; /* Важно для выравнивания числа курсов */
 }
 
-/* Синяя заливка столбика */
-.vertical-bar-fill {
+/* Число курсов над столбиком: выносим абсолютно НАД линией 100% */
+.local-ikt-review-wrap .vertical-bar-total-courses {
+    position: absolute;
+    top: -25px; /* Поднимаем над сеткой */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: #212529;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    z-index: 3;
+}
+
+/* ТРЕК СТОЛБИКА: Возвращаем фиксированное положение вровень с сеткой */
+.moodle-vertical-chart-container .vertical-bar-track {
     width: 40px !important;
-    background: linear-gradient(180deg, #007bff 0%, #2196F3 100%) !important;
+    height: 240px !important; /* Строго совпадает с высотой сетки */
+    background: #ffffff !important;
+    border: 1px solid #212529 !important;
     border-radius: 4px 4px 0 0;
+    position: relative;
+    box-sizing: border-box;
+    margin: 0 auto !important;
+    padding: 0 !important;
+}
+
+/* Синяя заливка столбика (растет снизу вверх внутри трека) */
+.moodle-vertical-chart-container .vertical-bar-fill {
+    position: absolute;
+    bottom: 0; /* Прижимаем к самому низу трека */
+    left: 0;
+    right: 0;
+    width: 100% !important; /* Растягивается на всю ширину трека */
+    background: #072741 !important; /* Твой фирменный темно-синий цвет */
     display: flex !important;
     align-items: flex-start !important;
     justify-content: center !important;
-    position: relative;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     margin: 0 !important;
+    box-sizing: border-box;
 }
 
-/* Текст процентов внутри/над столбиком */
-.vertical-bar-value {
+/* Текст процентов внутри синей заливки */
+.moodle-vertical-chart-container .vertical-bar-value {
     color: #ffffff !important;
-    font-size: 0.72rem !important;
+    font-size: 0.6rem !important;
     font-weight: bold !important;
     position: absolute;
-    top: 5px;
+    top: 4px;
     left: 50%;
     transform: translateX(-50%);
 }
 
-/* Выталкивание текста наверх для маленьких значений */
-.vertical-bar-fill[style*="height: 0%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 1%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 2%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 3%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 4%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 5%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 6%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 7%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 8%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 9%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 10%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 11%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 12%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 13%"] .vertical-bar-value,
-.vertical-bar-fill[style*="height: 14%"] .vertical-bar-value {
-    color: #495057 !important;
-    top: -20px !important;
+/* Если значение слишком маленькое, выталкиваем текст чуть выше синей заливки */
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 0%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 1%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 2%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 3%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 4%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 5%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 6%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 7%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 8%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 9%"] .vertical-bar-value,
+.moodle-vertical-chart-container .vertical-bar-fill[style*="height: 10%"] .vertical-bar-value {
+    color: #212529 !important;
+    top: -18px !important;
 }
-
 /* ОБЕРТКА ТЕКСТА: Теперь идет СТРOГО под треком столбика (снизу оси) */
 .vertical-bar-label-box {
     width: 100% !important;
     text-align: center;
-    padding: 0 4px;
-    margin-top: 12px !important; /* Отступ вниз от черной оси */
+    padding: 0 2px;
+    margin-top: 10px !important; /* Аккуратный отступ вниз от оси */
     box-sizing: border-box;
-    min-height: 60px; 
+    min-height: 35px; /* Уменьшили высоту, так как аббревиатуры занимают всего одну строку */
 }
 
-/* Стили самого текста подписи */
+/* Стили самого текста подписи (оптимизировано под аббревиатуры) */
 .vertical-bar-label {
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
+    font-size: 0.8rem !important; /* Чуть увеличили шрифт для лучшей читаемости коротких слов */
+    font-weight: 700 !important;   /* Сделали жирным, чтобы аббревиатуры смотрелись четко */
     color: #212529 !important;
     line-height: 1.25 !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
+    white-space: nowrap !important; /* Запрещаем перенос, чтобы аббревиатура гарантированно не разбивалась */
+    text-overflow: ellipsis;
+    overflow: hidden;
     display: block;
 }
 
